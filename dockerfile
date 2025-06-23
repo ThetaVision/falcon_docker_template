@@ -35,8 +35,7 @@ RUN apt-get update && \
 RUN pip install --no-cache-dir --extra-index-url https://pypi.nvidia.com \
         nvidia-pyindex \
         pycuda==2024.1 \
-        torch_tensorrt==2.3.0 \
-+             -f https://github.com/pytorch/TensorRT/releases \
+        torch_tensorrt==2.3.0 -f https://github.com/pytorch/TensorRT/releases \
         opencv-python==4.10.0.82 \
         matplotlib  tqdm  pillow
 
