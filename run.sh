@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-IMAGE=sudochris/falcon_docker_template:latest         # after you `docker build -t $IMAGE .`
+IMAGE=sudochris/falcon_docker_template:v1         # after you `docker build -t $IMAGE .`
 
 # allow root container to access X
 xhost +local:root
