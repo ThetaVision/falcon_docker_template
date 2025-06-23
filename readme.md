@@ -1,6 +1,6 @@
 # Jetson Orin Nano ‑ GUI + PyTorch + TensorRT Docker
 
-> **JetPack 6.2 / L4T r36.2.x** · tested on Jetson Orin Nano 8 GB (Ubuntu 22.04)
+> **JetPack 6.2 / L4T r36.4.3** · tested on Jetson Orin Nano 8 GB (Ubuntu 22.04)
 
 This repository shows how to run a hardware‑accelerated PyTorch application that opens a native window on the Jetson‑attached display **from inside a Docker container**. It also exposes every common peripheral (CSI/USB cameras, GPIO/I²C/SPI, audio, NVENC, etc.) so you can treat the container like the bare‑metal host.
 
@@ -25,7 +25,7 @@ The sample app (`src/app.py`) captures a live camera feed, runs a pretrained **M
 
 | Item                       | Version                | Notes                                                     |                        |
 | -------------------------- | ---------------------- | --------------------------------------------------------- | ---------------------- |
-| JetPack (host)             | **6.2** (L4T r36.2.\*) | \`dpkg -l                                                 | grep nvidia-l4t-core\` |
+| JetPack (host)             | **6.2** (L4T r36.4.\*) | \`dpkg -l | grep nvidia-l4t-core\`                        | grep nvidia-l4t-core\` |
 | Docker Engine              | ≥ 24 CE                | Installed automatically by JetPack 6 but update if needed |                        |
 | `nvidia‑container‑runtime` | ships with JetPack     | Confirms GPU pass‑through                                 |                        |
 | Internet (first run)       | optional               | Downloads the torchvision weights                         |                        |
@@ -73,7 +73,7 @@ You should see live camera video with a green class‑label overlay and an FPS c
 
 | Layer                | What we do                                                                               | Why                                                                           |
 | -------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| **Base image**       | `dustynv/l4t-pytorch:r36.2.0`                                                            | Matches JetPack 6.2 ABI; bundles CUDA 12, cuDNN 9, TensorRT 8.6, PyTorch 2.3. |
+| **Base image**       | `dustynv/l4t-pytorch:r36.4.3`                                                            | Matches JetPack 6.2 ABI; bundles CUDA 12, cuDNN 9, TensorRT 8.6, PyTorch 2.3. |
 | **GUI support**      | Install `python3-opencv` + GTK helpers and mount `/tmp/.X11‑unix` + `$DISPLAY`.          | `cv2.imshow()` opens a native X11 window; GL/EGL surfaces still accelerated.  |
 | **GPU / TensorRT**   | `--gpus all` + env `NVIDIA_DRIVER_CAPABILITIES=compute,utility,video`.                   | Enables CUDA cores + NVENC/NVDEC + Video4Linux in‑container.                  |
 | **Peripherals**      | `--privileged` (easiest) **or** granular `--device /dev/video0 --device /dev/i2c‑1 ...`. | Cameras, GPIO, I²C, etc. appear exactly as on host.                           |
@@ -127,7 +127,7 @@ OpenCV with GTK works the same; Qt/SDL apps need the `qtwayland5` package.
 
 | Problem                                                      | Fix                                                                                                                    |                                                                       |
 | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| ``** → **``                                                  | (1) Tag mismatch – make sure the image tag (e.g. `r36.2.0`) matches \`dpkg -l                                          | grep nvidia-l4t-core`.  (2) Forgot `--gpus all`or`--runtime nvidia\`. |
+| ``** → **``                                                  | (1) Tag mismatch – make sure the image tag (e.g. `r36.4.3`) matches \`dpkg -l                                          | grep nvidia-l4t-core`.  (2) Forgot `--gpus all`or`--runtime nvidia\`. |
 | OpenCV window blank white                                    | Install `libgtk-3-0` &  `libcanberra-gtk3-module` (already in Dockerfile).                                             |                                                                       |
 | *Cannot open /dev/video0*                                    | Camera busy on host (`argus_camera`), wrong index, or missing `--device /dev/video0`.                                  |                                                                       |
 | *“no kernel image is available for execution on the device”* | You built against a different CUDA major/minor. Re‑pull an image matching host JetPack or rebuild PyTorch from source. |                                                                       |

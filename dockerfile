@@ -1,8 +1,8 @@
 # -----------------------------------------------------------------------------
-# Jetson Orin Nano / JetPack 6.2  (L4T r36.2.x)
+# Jetson Orin Nano / JetPack 6.2  (L4T r36.4.3)
 # GUI-capable container with PyTorch + TensorRT
 # -----------------------------------------------------------------------------
-ARG L4T_TAG=r36.2.0          
+ARG L4T_TAG=r36.4.3          
 # keep in sync with host JetPack minor
 FROM dustynv/l4t-pytorch:${L4T_TAG}    
 # PyTorch 2.3, CUDA 12.x
