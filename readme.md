@@ -56,7 +56,7 @@ The sample app (`src/app.py`) captures a live camera feed, runs a pretrained **M
 cd falcon_docker_template
 
 # 2 — build the image (≈ 5 min on Nano, mostly PyPI wheels)
-docker build -t myorg/jetson-gui:latest .
+docker build -t sudochris/falcon_docker_template:latest .
 
 # 3 — allow root containers to access the X server (run once per boot)
 xhost +local:root
