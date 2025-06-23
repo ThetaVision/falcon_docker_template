@@ -27,6 +27,8 @@ def main() -> None:
         raise RuntimeError("CUDA not visible – did you start the container with '--gpus all'?")
     device = torch.device("cuda")
     print("CUDA device:", torch.cuda.get_device_name(0))
+    # Pytorch version
+    print("PyTorch version:", torch.__version__)
 
     # ------------------------------------------------------------------
     # 2.  Model and preprocessing
