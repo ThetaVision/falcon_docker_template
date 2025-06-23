@@ -1,94 +1,78 @@
 #!/usr/bin/env python3
 """
-Live camera + MobileNetV3-Small demo for Jetson Orin Nano
---------------------------------------------------------
-
-* Shows a camera preview in an OpenCV window
-* Runs MobileNetV3-Small on each frame (224×224 center crop)
-* Overlays the top-1 ImageNet class label + FPS
+Self‑contained MobileNetV3 camera demo for Jetson
+------------------------------------------------
+• No runtime internet needed – weights are pre‑fetched during the Docker build.
+• ImageNet labels come from TorchVision’s built‑in metadata (no external file).
 """
-import cv2
 import time
+import cv2
 import torch
 import torchvision.transforms as T
-import torchvision.models as models
+from torchvision.models import mobilenet_v3_small, MobileNet_V3_Small_Weights
 
-# ---------------------------------------------------------------------
-# 1.  Initial checks
-# ---------------------------------------------------------------------
-assert torch.cuda.is_available(), "CUDA not visible – did you run with --gpus all ?"
+# -----------------------------------------------------------------------------
+# 1.  CUDA / device setup
+# -----------------------------------------------------------------------------
+if not torch.cuda.is_available():
+    raise RuntimeError("CUDA not visible – did you run the container with --gpus all ?")
+
 device = torch.device("cuda")
-
 print("CUDA device:", torch.cuda.get_device_name(0))
 
-# ---------------------------------------------------------------------
-# 2.  Pre-load model & labels
-# ---------------------------------------------------------------------
-model = models.mobilenet_v3_small(weights="IMAGENET1K_V1").to(device)
-model.eval()                                   # inference mode
+# -----------------------------------------------------------------------------
+# 2.  Load model + labels (weights already cached inside the image)
+# -----------------------------------------------------------------------------
+weights = MobileNet_V3_Small_Weights.IMAGENET1K_V1
+model = mobilenet_v3_small(weights=weights).to(device).eval()
+labels = weights.meta["categories"]  # 1000‑class ImageNet names
 
-# ImageNet labels
-with open("/usr/local/share/imagenet_classes.txt", "r") as f:
-    labels = [s.strip() for s in f.readlines()]
-
-# Pre-processing pipeline
+# Normalisation values are also provided by the weights metadata
 transform = T.Compose([
     T.ToPILImage(),
     T.Resize(256, interpolation=T.InterpolationMode.BICUBIC),
     T.CenterCrop(224),
     T.ToTensor(),
-    T.Normalize(mean=[0.485, 0.456, 0.406],
-                std=[0.229, 0.224, 0.225]),
+    T.Normalize(mean=weights.meta["mean"], std=weights.meta["std"]),
 ])
 
-# ---------------------------------------------------------------------
-# 3.  Camera setup
-# ---------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# 3.  Camera
+# -----------------------------------------------------------------------------
 cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
 if not cap.isOpened():
     raise RuntimeError("Could not open /dev/video0 – check camera & permissions")
 
-# Warm up
-for _ in range(5):
+# Warm‑up
+for _ in range(4):
     cap.read()
 
 fps_hist = []
-
-# ---------------------------------------------------------------------
-# 4.  Main loop
-# ---------------------------------------------------------------------
 try:
     while True:
         tic = time.time()
-
-        ret, frame = cap.read()
-        if not ret:
-            print("Stream ended / camera disconnected")
+        ok, frame = cap.read()
+        if not ok:
             break
 
-        # Keep original for display; prepare a copy for inference
         img = transform(frame).unsqueeze(0).to(device)
-
         with torch.no_grad():
             logits = model(img)
-            top1_id = logits.argmax(dim=1).item()
-            top1_label = labels[top1_id]
+            top1 = logits.argmax(1).item()
+            label = labels[top1]
 
-        # -----------------------------------------------------------------
-        # 5.  GUI overlay & show
-        # -----------------------------------------------------------------
         fps = 1.0 / max(time.time() - tic, 1e-3)
         fps_hist.append(fps)
-        if len(fps_hist) > 20:       # moving window
+        if len(fps_hist) > 20:
             fps_hist.pop(0)
-        cv2.putText(frame, f"{top1_label}  ({sum(fps_hist)/len(fps_hist):.1f} FPS)",
-                    (12, 32), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2,
-                    cv2.LINE_AA)
-        cv2.imshow("Jetson-PyTorch-Demo", frame)
 
-        if cv2.waitKey(1) & 0xFF == 27:   # ESC to quit
+        cv2.putText(frame,
+                    f"{label}  ({sum(fps_hist)/len(fps_hist):.1f} FPS)",
+                    (12, 32), cv2.FONT_HERSHEY_SIMPLEX, 0.8,
+                    (0, 255, 0), 2, cv2.LINE_AA)
+        cv2.imshow("Jetson‑MobileNetV3", frame)
+        if cv2.waitKey(1) & 0xFF == 27:  # ESC
             break
-
 except KeyboardInterrupt:
     pass
 finally:
