@@ -5,7 +5,7 @@
 ARG L4T_TAG=r36.4.0          
 # keep in sync with host JetPack minor
 FROM dustynv/l4t-pytorch:${L4T_TAG}
-# PyTorch 2.X, CUDA 12.6
+# PyTorch 2.4, CUDA 12.6
 
 LABEL maintainer="cviviers@thetavision.nl"
 LABEL description="Jetson Orin Nano / JetPack 6.2 GUI-capable container with PyTorch + TensorRT"
