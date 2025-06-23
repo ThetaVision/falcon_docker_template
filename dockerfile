@@ -5,8 +5,7 @@
 ARG L4T_TAG=r36.4.0          
 # keep in sync with host JetPack minor
 FROM dustynv/l4t-pytorch:${L4T_TAG}
-
-# PyTorch 2.3, CUDA 12.x
+# PyTorch 2.X, CUDA 12.6
 
 LABEL maintainer="cviviers@thetavision.nl"
 LABEL description="Jetson Orin Nano / JetPack 6.2 GUI-capable container with PyTorch + TensorRT"
@@ -35,7 +34,6 @@ RUN apt-get update && \
 RUN pip install --no-cache-dir --extra-index-url https://pypi.nvidia.com \
         nvidia-pyindex \
         pycuda==2024.1.2 \
-        opencv-python==4.10.0.82 \
         matplotlib tqdm pillow
 
 
