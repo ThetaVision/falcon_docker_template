@@ -41,8 +41,8 @@ RUN pip install --no-cache-dir --extra-index-url https://pypi.nvidia.com \
 # Your application
 # --------------------------------------------------------------------------
 WORKDIR /workspace/app
-# COPY requirements.txt .       
-# RUN pip install --no-cache-dir -r requirements.txt || true
-# COPY src/ .
+COPY requirements.txt .       
+RUN pip install --no-cache-dir -r requirements.txt || true
+COPY src/ .
 
 CMD ["python3", "app.py"]
