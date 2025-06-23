@@ -2,49 +2,48 @@
 """
 Jetson Orin Nano – MobileNetV3 live-camera demo
 ==============================================
-* Runs fully offline (weights are baked into the Docker image).
-* Uses TorchVision’s built-in `weights.transforms()`, so there’s
-  no hard-coded mean/std and no missing-file issues.
-* Displays top-1 ImageNet label and a moving-average FPS counter.
+• Offline-ready (weights baked into the Docker image)
+• Uses TorchVision’s preset transforms (no manual mean/std)
+• Shows top-1 ImageNet class and moving-average FPS
 
-Press **Esc** to quit the window.
+Press Esc to quit.
 """
 from __future__ import annotations
 
 import time
+from pathlib import Path
 
 import cv2
 import torch
+from PIL import Image
 from torchvision.models import MobileNet_V3_Small_Weights, mobilenet_v3_small
 
 
 def main() -> None:
     # ------------------------------------------------------------------
-    # 1.  CUDA check
+    # 1.  CUDA availability
     # ------------------------------------------------------------------
     if not torch.cuda.is_available():
-        raise RuntimeError(
-            "CUDA not visible – did you start the container with '--gpus all'?"
-        )
+        raise RuntimeError("CUDA not visible – did you start the container with '--gpus all'?")
     device = torch.device("cuda")
     print("CUDA device:", torch.cuda.get_device_name(0))
 
     # ------------------------------------------------------------------
-    # 2.  Model + preprocessing pipeline
+    # 2.  Model and preprocessing
     # ------------------------------------------------------------------
     weights = MobileNet_V3_Small_Weights.IMAGENET1K_V1
     model = mobilenet_v3_small(weights=weights).to(device).eval()
     labels: list[str] = weights.meta["categories"]
-    preprocess = weights.transforms()  # Resize → CenterCrop → ToTensor → Normalize
+    preprocess = weights.transforms()      # Resize → CenterCrop → ToTensor → Normalize
 
     # ------------------------------------------------------------------
-    # 3.  Camera
+    # 3.  Camera setup
     # ------------------------------------------------------------------
     cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
     if not cap.isOpened():
         raise RuntimeError("Unable to open /dev/video0 – check camera index/permissions")
 
-    # Warm-up for exposure/white-balance
+    # Warm-up a few frames for exposure stabilisation
     for _ in range(4):
         cap.read()
 
@@ -53,28 +52,30 @@ def main() -> None:
     try:
         while True:
             tic = time.time()
-            ok, frame = cap.read()
+            ok, frame_bgr = cap.read()
             if not ok:
                 break
 
-            # BGR → RGB for TorchVision and apply transforms
-            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            inp = preprocess(rgb).unsqueeze(0).to(device)
+            # ---------- Preprocess ----------
+            frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+            img_pil = Image.fromarray(frame_rgb)          # ← convert to PIL
+            tensor = preprocess(img_pil).unsqueeze(0).to(device)
 
+            # ---------- Inference ----------
             with torch.no_grad():
-                pred = model(inp)
-                class_id: int = int(pred.argmax(1))
+                logits = model(tensor)
+                class_id = int(logits.argmax(1))
                 label = labels[class_id]
 
-            # FPS (moving average of last 20 frames)
+            # ---------- FPS ----------
             fps_window.append(1.0 / max(time.time() - tic, 1e-3))
             if len(fps_window) > 20:
                 fps_window.pop(0)
             fps = sum(fps_window) / len(fps_window)
 
-            # Overlay and display
+            # ---------- Overlay ----------
             cv2.putText(
-                frame,
+                frame_bgr,
                 f"{label}  ({fps:.1f} FPS)",
                 (12, 32),
                 cv2.FONT_HERSHEY_SIMPLEX,
@@ -83,9 +84,9 @@ def main() -> None:
                 2,
                 cv2.LINE_AA,
             )
-            cv2.imshow("Jetson-MobileNetV3", frame)
+            cv2.imshow("Jetson-MobileNetV3", frame_bgr)
 
-            if cv2.waitKey(1) & 0xFF == 27:  # ESC
+            if cv2.waitKey(1) & 0xFF == 27:  # Esc key
                 break
     except KeyboardInterrupt:
         pass
