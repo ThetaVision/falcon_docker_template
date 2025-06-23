@@ -4,7 +4,8 @@
 # -----------------------------------------------------------------------------
 ARG L4T_TAG=r36.4.0          
 # keep in sync with host JetPack minor
-FROM dustynv/l4t-pytorch:${L4T_TAG}    
+FROM dustynv/l4t-pytorch:${L4T_TAG}
+
 # PyTorch 2.3, CUDA 12.x
 
 LABEL maintainer="cviviers@thetavision.nl"
@@ -21,7 +22,9 @@ RUN apt-get update && \
         python3-opencv \
         libcanberra-gtk3-module \
         gstreamer1.0-tools \
-        gstreamer1.0-plugins-{good,bad,base} \
+        gstreamer1.0-plugins-good \
+        gstreamer1.0-plugins-bad \
+        gstreamer1.0-plugins-base \
         v4l-utils \
         libgstreamer-plugins-base1.0-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
